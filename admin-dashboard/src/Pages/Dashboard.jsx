@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ChartBarIcon,
   ShoppingBagIcon,
@@ -7,6 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import api from "../services/api";
 import StatusUpdater from "../components/StatusUpdater";
+import CountUp from "react-countup";
 
 export default function Dashboard() {
   const [stats, setStats] = useState({
@@ -106,41 +108,59 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
+        <Link to="/orders">
+        <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center">
             <ShoppingBagIcon className="h-8 w-8 text-blue-500 mr-3" />
             <div>
               <p className="text-gray-500">Total Orders</p>
               <p className="text-2xl font-bold">
-                {stats.totalOrders.toLocaleString()}
+                <CountUp
+                  end={stats.totalOrders.toLocaleString()}
+                  duration={1.5}
+                  separator=","
+                />
               </p>
             </div>
           </div>
         </div>
+        </Link>
 
-        <div className="bg-white p-6 rounded-lg shadow">
+        <Link to="/products" className="block">
+        <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center">
             <ChartBarIcon className="h-8 w-8 text-pink-500 mr-3" />
             <div>
               <p className="text-gray-500">Total Products</p>
               <p className="text-2xl font-bold">
-                {stats.totalProducts.toLocaleString()}
+                <CountUp
+                  end={stats.totalProducts.toLocaleString()}
+                  duration={1.5}
+                  separator=","
+                />
               </p>
             </div>
           </div>
         </div>
+        </Link>
 
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <UsersIcon className="h-8 w-8 text-purple-500 mr-3" />
-            <div>
-              <p className="text-gray-500">Total Customers</p>
-              <p className="text-2xl font-bold">
-                {stats.totalCustomers.toLocaleString()}
-              </p>
+        <Link to="/customers" className="block">
+          <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-center">
+              <UsersIcon className="h-8 w-8 text-purple-500 mr-3" />
+              <div>
+                <p className="text-gray-500">Total Customers</p>
+                <p className="text-2xl font-bold">
+                  <CountUp
+                    end={stats.totalCustomers}
+                    duration={1.5}
+                    separator=","
+                  />
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        </Link>
 
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center">
@@ -162,10 +182,11 @@ export default function Dashboard() {
               <p className="text-gray-500">Total Revenue</p>
               <p className="text-2xl font-bold">
                 $
-                {stats.totalRevenue.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                <CountUp
+                  end={stats.totalRevenue}
+                  duration={1.5}
+                  separator=","
+                />
               </p>
             </div>
           </div>
