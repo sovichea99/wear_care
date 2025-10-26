@@ -4,88 +4,101 @@ import api from "../services/api";
 export default function EditProductForm({ product, onUpdate, onCancel }) {
   const [updatedProduct, setUpdatedProduct] = useState({
     ...product,
-    id: product.id || product._id,
-    category_id: product.category_id || product.category,
-    variants: (product.variants || []).map(variant => ({
+    id: product.id,
+    category_name: product.category_name,
+    variants: (product.variants || []).map((variant) => ({
       size: variant.size,
       stock: Number(variant.stock) || 0,
     })),
     price: Number(product.price) || 0,
   });
-  const [duplicateSizeWarning, setDuplicateSizeWarning] = useState('');
+  const [duplicateSizeWarning, setDuplicateSizeWarning] = useState("");
   const [imageFile, setImageFile] = useState(null);
-  const [currentVariant, setCurrentVariant] = useState({ size: 'S', stock: '' });
+  const [currentVariant, setCurrentVariant] = useState({
+    size: "S",
+    stock: "",
+  });
   const [categories, setCategories] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  //const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-
+  //const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [formSubmitting, setFormSubmitting] = useState(false);
   useEffect(() => {
-    setIsLoading(true);
     const fetchCategories = async () => {
       try {
         const response = await api.get("/categories");
-        const normalizedCategories = response.data.map(category => ({
+        const normalizedCategories = response.data.map((category) => ({
           ...category,
           id: category.id || category._id,
-          name: category.name,
+          name: category.name || category.category_name,
         }));
         setCategories(normalizedCategories);
 
-        if (updatedProduct.category_id && !normalizedCategories.find(c => c.id === updatedProduct.category_id)) {
-          const matchingCategory = normalizedCategories.find(c => c.name === updatedProduct.category_id);
+        if (
+          updatedProduct.category_name &&
+          !normalizedCategories.find(
+            (c) => c.id === updatedProduct.category_name
+          )
+        ) {
+          const matchingCategory = normalizedCategories.find(
+            (c) => c.name === updatedProduct.category_name
+          );
           if (matchingCategory) {
-            setUpdatedProduct(prev => ({ ...prev, category_id: matchingCategory.id }));
+            setUpdatedProduct((prev) => ({
+              ...prev,
+              category_id: matchingCategory.id,
+            }));
           }
         }
       } catch (err) {
         setError("Failed to load categories.");
         console.error("Error fetching categories:", err);
-      } finally {
-        setIsLoading(false);
       }
     };
     fetchCategories();
-  }, [updatedProduct.category_id]);
+  }, [updatedProduct.category_name]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setUpdatedProduct((prev) => ({
       ...prev,
-      [name]: name === 'price' ? Number(value) : value,
+      [name]: name === "price" ? Number(value) : value,
     }));
   };
 
   const handleVariantChange = (e) => {
     const { name, value } = e.target;
-    setCurrentVariant(prev => ({
+    setCurrentVariant((prev) => ({
       ...prev,
-      [name]: name === 'stock' ? Number(value) : value,
+      [name]: name === "stock" ? Number(value) : value,
     }));
   };
 
   const addVariant = () => {
-    if (currentVariant.stock === '' || currentVariant.stock < 0) return;
+    if (currentVariant.stock === "" || currentVariant.stock < 0) return;
 
     const existingVariantIndex = updatedProduct.variants.findIndex(
-      v => v.size === currentVariant.size
+      (v) => v.size === currentVariant.size
     );
     if (existingVariantIndex >= 0) {
       // Show warning that we're updating existing size
-      setDuplicateSizeWarning(`Size ${currentVariant.size} already exists - stock will be added`);
+      setDuplicateSizeWarning(
+        `Size ${currentVariant.size} already exists - stock will be added`
+      );
 
-      setTimeout(() => setDuplicateSizeWarning(''), 5000); // Hide after 3 seconds
+      setTimeout(() => setDuplicateSizeWarning(""), 5000); // Hide after 3 seconds
 
-      setUpdatedProduct(prev => ({
+      setUpdatedProduct((prev) => ({
         ...prev,
         variants: prev.variants.map((v, i) =>
           i === existingVariantIndex
             ? { ...v, stock: v.stock + Number(currentVariant.stock) }
             : v
-        )
+        ),
       }));
     } else {
-      setDuplicateSizeWarning('');
-      setUpdatedProduct(prev => ({
+      setDuplicateSizeWarning("");
+      setUpdatedProduct((prev) => ({
         ...prev,
         variants: [
           ...prev.variants,
@@ -93,11 +106,11 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
         ],
       }));
     }
-    setCurrentVariant({ size: 'S', stock: '' });
+    setCurrentVariant({ size: "S", stock: "" });
   };
 
   const removeVariant = (index) => {
-    setUpdatedProduct(prev => ({
+    setUpdatedProduct((prev) => ({
       ...prev,
       variants: prev.variants.filter((_, i) => i !== index),
     }));
@@ -115,27 +128,27 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
     }
 
     try {
-      setIsLoading(true);
+      setFormSubmitting(true); // Use formSubmitting instead of isLoading
       setError(null);
 
       const updateData = {
         _id: updatedProduct.id,
         name: updatedProduct.name,
         price: updatedProduct.price,
-        category: updatedProduct.category_id,
-        description: updatedProduct.description || '',
-        variants: updatedProduct.variants.map(v => ({
+        category_name: updatedProduct.category_name,
+        description: updatedProduct.description || "",
+        variants: updatedProduct.variants.map((v) => ({
           size: v.size,
-          stock: Number(v.stock)
-        }))
+          stock: Number(v.stock),
+        })),
       };
 
       let formData = null;
       if (imageFile) {
         formData = new FormData();
-        formData.append('image', imageFile);
+        formData.append("image", imageFile);
         Object.entries(updateData).forEach(([key, value]) => {
-          if (key === 'variants') {
+          if (key === "variants") {
             formData.append(key, JSON.stringify(value));
           } else {
             formData.append(key, value);
@@ -145,10 +158,10 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
 
       await onUpdate(formData || updateData);
     } catch (error) {
-      console.error('Form submission error:', error);
-      setError(error.message || 'Failed to update product');
+      console.error("Form submission error:", error);
+      setError(error.message || "Failed to update product");
     } finally {
-      setIsLoading(false);
+      setFormSubmitting(false); // Use formSubmitting instead of isLoading
     }
   };
 
@@ -169,7 +182,7 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
                 <input
                   type="text"
                   name="name"
-                  value={updatedProduct.name || ''}
+                  value={updatedProduct.name || ""}
                   onChange={handleChange}
                   className="w-full p-1.5 text-sm border rounded"
                   required
@@ -191,46 +204,51 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
 
             <div className="mb-3">
               <label className="block text-xs font-medium mb-1">Category</label>
-              {isLoading ? (
-                <div className="text-sm text-gray-500">Loading categories...</div>
-              ) : (
-                <div className="relative">
-                  <select
-                    name="category_id"
-                    value={updatedProduct.category_id || ''}
-                    onChange={handleChange}
-                    className="w-full p-1.5 text-sm border rounded appearance-none"
-                    required
+
+              <div className="relative">
+                <select
+                  name="category_name"
+                  value={updatedProduct.category_name || ""}
+                  onChange={handleChange}
+                  className="w-full p-1.5 text-sm border rounded appearance-none"
+                  required
+                >
+                  <option value="">Select a category</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.name}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <svg
+                    className="fill-current h-4 w-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
                   >
-                    <option value="">Select a category</option>
-                    {categories.map(category => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                      <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                    </svg>
-                  </div>
+                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                  </svg>
                 </div>
-              )}
+              </div>
             </div>
 
             <div className="mb-3">
-              <label className="block text-xs font-medium mb-1">Description</label>
+              <label className="block text-xs font-medium mb-1">
+                Description
+              </label>
               <input
                 type="text"
                 name="description"
-                value={updatedProduct.description || ''}
+                value={updatedProduct.description || ""}
                 onChange={handleChange}
                 className="w-full p-1.5 text-sm border rounded"
               />
             </div>
 
             <div className="mb-3">
-              <label className="block text-xs font-medium mb-1">Size Variants*</label>
+              <label className="block text-xs font-medium mb-1">
+                Size Variants*
+              </label>
               <div className="flex gap-2 mb-2">
                 <div className="relative w-1/3">
                   <select
@@ -244,7 +262,11 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
                     <option value="L">L</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                    <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                    <svg
+                      className="fill-current h-4 w-4"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                    >
                       <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
                     </svg>
                   </div>
@@ -269,25 +291,31 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
                 </button>
               </div>
               {duplicateSizeWarning && (
-                <div className="text-yellow-500 text-xs mb-1">{duplicateSizeWarning}</div>
+                <div className="text-yellow-500 text-xs mb-1">
+                  {duplicateSizeWarning}
+                </div>
               )}
               {updatedProduct.variants.map((variant, index) => (
                 <div
                   key={`${variant.size}-${index}`}
                   className="flex justify-between items-center py-1 px-2 even:bg-gray-50"
                 >
-                  <span className="text-sm font-medium">Size {variant.size}</span>
+                  <span className="text-sm font-medium">
+                    Size {variant.size}
+                  </span>
 
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setUpdatedProduct(prev => ({
+                        setUpdatedProduct((prev) => ({
                           ...prev,
                           variants: prev.variants.map((v, i) =>
-                            i === index ? { ...v, stock: Math.max(0, v.stock - 1) } : v
-                          )
+                            i === index
+                              ? { ...v, stock: Math.max(0, v.stock - 1) }
+                              : v
+                          ),
                         }));
                       }}
                       className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
@@ -295,17 +323,19 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
                       -
                     </button>
 
-                    <span className="text-sm w-6 text-center">{variant.stock}</span>
+                    <span className="text-sm w-6 text-center">
+                      {variant.stock}
+                    </span>
 
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setUpdatedProduct(prev => ({
+                        setUpdatedProduct((prev) => ({
                           ...prev,
                           variants: prev.variants.map((v, i) =>
                             i === index ? { ...v, stock: v.stock + 1 } : v
-                          )
+                          ),
                         }));
                       }}
                       className="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300"
@@ -326,11 +356,12 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
                   </div>
                 </div>
               ))}
-
             </div>
 
             <div className="mb-3">
-              <label className="block text-xs font-medium mb-1">Replace Image (Optional)</label>
+              <label className="block text-xs font-medium mb-1">
+                Replace Image (Optional)
+              </label>
               <input
                 type="file"
                 onChange={handleImageChange}
@@ -338,7 +369,11 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
                 accept="image/*"
               />
               <img
-                src={imageFile ? URL.createObjectURL(imageFile) : updatedProduct.image || ''}
+                src={
+                  imageFile
+                    ? URL.createObjectURL(imageFile)
+                    : updatedProduct.image || ""
+                }
                 alt="Preview"
                 className="w-full h-48 object-contain mt-2 rounded"
               />
@@ -353,7 +388,7 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
               type="button"
               onClick={onCancel}
               className="bg-gray-500 hover:bg-gray-600 text-white text-sm px-4 py-2 rounded transition-colors"
-              disabled={isLoading}
+              disabled={formSubmitting} // Use formSubmitting here
             >
               Cancel
             </button>
@@ -361,9 +396,10 @@ export default function EditProductForm({ product, onUpdate, onCancel }) {
               type="submit"
               form="edit-product-form"
               className="bg-pink-500 hover:bg-pink-600 text-white text-sm px-4 py-2 rounded transition-colors"
-              disabled={isLoading}
+              disabled={formSubmitting} // Use formSubmitting here
             >
-              {isLoading ? 'Updating...' : 'Update'}
+              {formSubmitting ? "Updating..." : "Update"}{" "}
+              {/* Use formSubmitting here */}
             </button>
           </div>
         </div>
