@@ -19,6 +19,7 @@ export default function Category() {
         const normalizedCategories = response.data.map(category => ({
           ...category,
           _id: category._id || category.id,
+          uses_sizes: category.uses_sizes !== undefined ? category.uses_sizes : true, // Default to true for backward compatibility
         }));
         setCategories(normalizedCategories);
       } catch (err) {
@@ -43,7 +44,10 @@ export default function Category() {
       const token = localStorage.getItem("authtoken");
       const response = await api.post(
         `/categories/${updatedCategory._id}`,
-        { name: updatedCategory.name },
+        { 
+          name: updatedCategory.name,
+          uses_sizes: updatedCategory.uses_sizes 
+        },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -54,25 +58,22 @@ export default function Category() {
 
       console.log("API Response:", response.data);
 
-
       // Update categories with a new array to ensure React detects the change
-      // Update local state with a new object reference
       setCategories((prevCategories) =>
         prevCategories.map((cat) =>
           cat._id === updatedCategory._id
-            ? { ...cat, ...updatedCategory } // merge updates
+            ? { ...cat, ...updatedCategory }
             : cat
         )
       );
 
       setEditingCategory(null);
-      // Show success message
       setSuccessMessage("Category updated successfully!");
-      setTimeout(() => setSuccessMessage(null), 3000); // hide after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       console.error("Error updating category:", error);
       setError("Failed to update category. Please try again.");
-      setTimeout(() => setError(null), 3000); // hide after 3 seconds
+      setTimeout(() => setError(null), 3000);
     }
   };
 
@@ -116,13 +117,19 @@ export default function Category() {
       const newCategoryData = {
         ...response.data.category,
         _id: response.data.category._id || response.data.category.id,
+        uses_sizes: response.data.category.uses_sizes !== undefined ? response.data.category.uses_sizes : true,
       };
 
       setCategories((prevCategories) => [...prevCategories, newCategoryData]);
       setShowAddForm(false);
+      
+      // Show success message
+      setSuccessMessage("Category added successfully!");
+      setTimeout(() => setSuccessMessage(null), 3000);
     } catch (error) {
       console.error("Error adding category:", error);
       setError("Failed to add category. Please try again.");
+      setTimeout(() => setError(null), 3000);
     } finally {
       setIsLoading(false);
     }
@@ -159,9 +166,11 @@ export default function Category() {
               Add Category
             </button>
           </div>
+
+          {/* Success Message */}
           {successMessage && (
             <div className="rounded-md bg-green-50 p-4 mb-4">
-              <div className="flex items-center"> {/* add items-center here */}
+              <div className="flex items-center">
                 <div className="flex-shrink-0 h-5 w-5 flex items-center justify-center bg-green-100 rounded-full">
                   <svg
                     className="h-5 w-5 text-green-400"
@@ -169,7 +178,7 @@ export default function Category() {
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
-                    <path className=""
+                    <path
                       fillRule="evenodd"
                       d="M16.707 5.293a1 1 0 00-1.414 0L9 11.586 6.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l7-7a1 1 0 000-1.414z"
                       clipRule="evenodd"
@@ -182,7 +191,6 @@ export default function Category() {
               </div>
             </div>
           )}
-
 
           {/* Error Message */}
           {error && (
@@ -229,14 +237,18 @@ export default function Category() {
                       <h3 className="text-lg leading-6 font-medium text-gray-900">
                         {category.name}
                       </h3>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
-                        Active
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        category.uses_sizes 
+                          ? 'bg-blue-100 text-blue-800' 
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {category.uses_sizes ? 'Uses Sizes' : 'No Sizes'}
                       </span>
                     </div>
                     <div className="mt-4 flex space-x-3">
                       <button
                         onClick={() => handleEdit(category)}
-                        className="inline-flex items-center px-3 py-2 border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-pink-700 bg-pink-100 hover:bg-pink-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500"
+                        className="inline-flex items-center px-3 py-2 border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-pink-700 bg-pink-100 hover:bg-pink-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-colors"
                       >
                         <svg
                           className="h-4 w-4 text-pink-500"
@@ -249,7 +261,7 @@ export default function Category() {
                       </button>
                       <button
                         onClick={() => handleDelete(category._id)}
-                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                       >
                         <svg
                           className="h-4 w-4"
@@ -296,7 +308,7 @@ export default function Category() {
               <div className="mt-6">
                 <button
                   onClick={() => setShowAddForm(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-pink-600 hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500"
                 >
                   <svg
                     className="-ml-1 mr-2 h-5 w-5"

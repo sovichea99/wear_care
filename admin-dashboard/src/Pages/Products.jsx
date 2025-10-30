@@ -15,6 +15,7 @@ export default function Products() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
@@ -22,7 +23,27 @@ export default function Products() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+  // Add categories state to your Products component
+  const [allCategories, setAllCategories] = useState([]);
 
+  // Add this useEffect to fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await api.get("/categories");
+        const normalizedCategories = response.data.map((category) => ({
+          ...category,
+          id: category.id || category._id,
+          uses_sizes:
+            category.uses_sizes !== undefined ? category.uses_sizes : true,
+        }));
+        setAllCategories(normalizedCategories);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -33,10 +54,10 @@ export default function Products() {
           category_id: product.category_id,
           variants: (product.variants || []).map((variant) => ({
             size: variant.size,
-            stock: Number(variant.stock) || 0, // Convert stock to number
+            stock: Number(variant.stock) || 0,
           })),
+          stock: product.stock,
         }));
-        //console.log("Fetched products:", normalizedProducts);
         setProducts(normalizedProducts);
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -58,7 +79,7 @@ export default function Products() {
       id: product.id,
       category_id: product.category_id || product.category,
     };
-    console.log("Editing product:", normalizedProduct);
+    // console.log("Editing product:", normalizedProduct);
     setEditingProduct(normalizedProduct);
   };
 
@@ -75,13 +96,6 @@ export default function Products() {
       const price = formData.get("price");
       if (price) formData.set("price", Number(price));
 
-      // Ensure variant stock is number
-      let index = 0;
-      while (formData.has(`variants[${index}][stock]`)) {
-        const stock = formData.get(`variants[${index}][stock]`);
-        formData.set(`variants[${index}][stock]`, Number(stock));
-        index++;
-      }
 
       // Send request
       const response = await api.post("/products", formData, {
@@ -91,22 +105,19 @@ export default function Products() {
         },
       });
 
-      //console.log("Add product response:", response);
-
-      // Determine if response contains product
       const productData = response?.data?.data;
 
       if (!productData) {
-        // If backend returns validation errors
-        if (productData?.errors) {
-          const errorMessages = Object.entries(productData.errors)
+        // Check for validation errors from backend
+        if (response?.data?.errors) {
+          const errorMessages = Object.entries(response.data.errors)
             .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
             .join("\n");
           alert(`Failed to add product:\n${errorMessages}`);
         } else {
           alert(
             `Failed to add product. Server response:\n${JSON.stringify(
-              productData
+              response?.data
             )}`
           );
         }
@@ -123,6 +134,7 @@ export default function Products() {
           size: v.size,
           stock: Number(v.stock),
         })),
+        stock: productData.stock,
       };
 
       setProducts((prev) => [...prev, newProduct]);
@@ -130,8 +142,6 @@ export default function Products() {
 
       // Show success message
       setSuccessMessage("Product added successfully! 🎉");
-
-      // Auto-hide after 3 seconds with fade-out animation
       setTimeout(() => {
         setSuccessMessage("");
       }, 3000);
@@ -141,11 +151,14 @@ export default function Products() {
         error.response?.data || error.message
       );
 
+      // Show detailed error message
       if (error.response?.data?.errors) {
         const errorMessages = Object.entries(error.response.data.errors)
           .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
           .join("\n");
         alert(`Failed to add product:\n${errorMessages}`);
+      } else if (error.response?.data?.message) {
+        alert(`Failed to add product: ${error.response.data.message}`);
       } else {
         alert("Failed to add product. Please check all fields and try again.");
       }
@@ -155,7 +168,9 @@ export default function Products() {
   const handleUpdate = async (updateData) => {
     try {
       const token = localStorage.getItem("authtoken");
-      const productId = updateData._id;
+
+      // Handle both FormData and regular objects
+      const productId = updateData.get?.("_id") || updateData._id;
 
       if (!productId) {
         throw new Error("Product ID is missing!");
@@ -193,12 +208,16 @@ export default function Products() {
       const updatedProduct = {
         ...response.data.data,
         id: response.data.data.id,
-        category_name: response.data.data.category_name,
-        variants: response.data.data.variants.map((v) => ({
+        category_name: response.data.data.category_name, // Make sure this is set correctly
+        category_id: response.data.data.category_id, // Also update category_id
+        variants: (response.data.data.variants || []).map((v) => ({
           size: v.size,
           stock: Number(v.stock),
         })),
+        stock: response.data.data.stock,
       };
+
+      // console.log("Updated product from API:", updatedProduct); // Debug log
 
       setProducts((prev) =>
         prev.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
@@ -221,40 +240,161 @@ export default function Products() {
     }
   };
 
-  // Helper function to check for changes
+  // Enhanced hasChanges function to handle FormData
   const hasChanges = (newData, original) => {
-    // Check basic fields
-    const basicFields = ["name", "price", "category_name", "description"];
-    for (let field of basicFields) {
-      if (newData[field] !== original[field]) {
+
+    // If it's FormData, extract values and compare
+    if (newData instanceof FormData) {
+      const name = newData.get("name");
+      const price = Number(newData.get("price"));
+      const category_name = newData.get("category_name");
+      const description = newData.get("description") || "";
+      const stock = Number(newData.get("stock") || 0);
+
+      // Check basic fields
+      if (name !== original.name) {
+        console.log("Name changed:", name, "!=", original.name);
         return true;
       }
-    }
+      if (price !== Number(original.price)) {
+        console.log("Price changed:", price, "!=", original.price);
+        return true;
+      }
+      if (category_name !== original.category_name) {
+        console.log(
+          "Category changed:",
+          category_name,
+          "!=",
+          original.category_name
+        );
+        return true;
+      }
+      if (description !== (original.description || "")) {
+        console.log("Description changed");
+        return true;
+      }
 
-    // Check variants (deep comparison)
-    if (newData.variants && original.variants) {
-      if (newData.variants.length !== original.variants.length) return true;
+      // Check if image file is included
+      const imageFile = newData.get("image");
+      if (imageFile && imageFile.name && imageFile.size > 0) {
+        console.log("Image changed");
+        return true;
+      }
 
-      for (let i = 0; i < newData.variants.length; i++) {
-        const newVariant = newData.variants[i];
-        const origVariant = original.variants[i];
+      // Check stock for no-size products
+      if (stock !== Number(original.stock || 0)) {
+        console.log("Stock changed:", stock, "!=", original.stock);
+        return true;
+      }
 
-        if (
-          newVariant.size !== origVariant.size ||
-          Number(newVariant.stock) !== Number(origVariant.stock)
-        ) {
+      // Check variants from FormData
+      const variantsJson = newData.get("variants");
+      if (variantsJson) {
+        try {
+          const newVariants = JSON.parse(variantsJson);
+          const originalVariants = original.variants || [];
+
+          if (newVariants.length !== originalVariants.length) {
+            console.log("Variants length changed");
+            return true;
+          }
+
+          for (let i = 0; i < newVariants.length; i++) {
+            const newVariant = newVariants[i];
+            const originalVariant = originalVariants[i];
+
+            if (!originalVariant) {
+              console.log("New variant added");
+              return true;
+            }
+            if (newVariant.size !== originalVariant.size) {
+              console.log("Variant size changed");
+              return true;
+            }
+            if (Number(newVariant.stock) !== Number(originalVariant.stock)) {
+              console.log("Variant stock changed");
+              return true;
+            }
+          }
+        } catch (error) {
+          console.log("Error parsing variants:", error);
+          return true;
+        }
+      } else {
+        // If no variants in new data but original has variants, it's a change
+        if (original.variants && original.variants.length > 0) {
+          console.log("Variants removed");
           return true;
         }
       }
-    }
 
-    // If image file is included, consider it a change
-    if (newData instanceof FormData && newData.has("image")) {
-      return true;
-    }
+      console.log("No changes detected");
+      return false;
+    } else {
+      // Regular object comparison
+      const basicFields = ["name", "price", "category_name", "description"];
+      for (let field of basicFields) {
+        if (field === "price") {
+          if (Number(newData[field]) !== Number(original[field])) {
+            console.log(
+              `${field} changed:`,
+              newData[field],
+              "!=",
+              original[field]
+            );
+            return true;
+          }
+        } else if (newData[field] !== (original[field] || "")) {
+          console.log(
+            `${field} changed:`,
+            newData[field],
+            "!=",
+            original[field]
+          );
+          return true;
+        }
+      }
 
-    return false;
+      // Check stock for no-size products
+      if (Number(newData.stock || 0) !== Number(original.stock || 0)) {
+        console.log("Stock changed:", newData.stock, "!=", original.stock);
+        return true;
+      }
+
+      // Check variants (deep comparison)
+      const newVariants = newData.variants || [];
+      const originalVariants = original.variants || [];
+
+      // If both have variants, compare them
+      if (newVariants.length > 0 && originalVariants.length > 0) {
+        if (newVariants.length !== originalVariants.length) {
+          console.log("Variants length changed");
+          return true;
+        }
+
+        for (let i = 0; i < newVariants.length; i++) {
+          const newVariant = newVariants[i];
+          const origVariant = originalVariants[i];
+
+          if (
+            newVariant.size !== origVariant.size ||
+            Number(newVariant.stock) !== Number(origVariant.stock)
+          ) {
+            console.log("Variant changed");
+            return true;
+          }
+        }
+      } else if (newVariants.length !== originalVariants.length) {
+        // If one has variants and the other doesn't, it's a change
+        console.log("Variants presence changed");
+        return true;
+      }
+
+      console.log("No changes detected");
+      return false;
+    }
   };
+
   const handleDelete = async (productId, productName) => {
     if (!window.confirm(`Are you sure you want to delete "${productName}"?`)) {
       return;
@@ -268,10 +408,7 @@ export default function Products() {
       });
       setProducts(products.filter((product) => product.id !== productId));
 
-      // Show success message
       setSuccessMessage("Product deleted successfully! 🎉");
-
-      // Auto-hide after 3 seconds with fade-out animation
       setTimeout(() => {
         setSuccessMessage("");
       }, 3000);
@@ -282,6 +419,15 @@ export default function Products() {
       setIsDeleting(false);
     }
   };
+  // Helper function to check if a product uses sizes
+  const getProductUsesSizes = (product) => {
+    const category = allCategories.find(
+      (cat) =>
+        cat.name === product.category_name || cat.id === product.category_id
+    );
+    return category ? category.uses_sizes !== false : true; // Default to true for backward compatibility
+  };
+
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name?.toLowerCase().includes(filterQuery.toLowerCase()) ?? true;
@@ -289,6 +435,7 @@ export default function Products() {
       selectedCategory === "all" || product.category_name === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
   const categories = [
     ...new Set(products.map((product) => product.category_name)),
   ];
@@ -444,16 +591,19 @@ export default function Products() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => {
+              const usesSizes = getProductUsesSizes(product);
               const selectedSize = selectedSizes[product.id];
               const selectedVariant = product.variants?.find(
                 (v) => v.size === selectedSize
               );
-              const displayStock = selectedVariant
-                ? selectedVariant.stock
-                : product.variants?.reduce(
-                    (sum, v) => sum + Number(v.stock),
-                    0
-                  ) || 0;
+              const displayStock = usesSizes
+                ? selectedVariant
+                  ? selectedVariant.stock
+                  : product.variants?.reduce(
+                      (sum, v) => sum + Number(v.stock),
+                      0
+                    ) || 0
+                : product.stock || 0;
               return (
                 <div
                   key={product.id}
@@ -476,9 +626,11 @@ export default function Products() {
                             : "bg-red-100 text-red-500"
                         }`}
                       >
-                        {selectedSize
-                          ? `${displayStock} in stock (Size ${selectedSize})`
-                          : `total: ${displayStock} in stock`}
+                        {usesSizes
+                          ? selectedSize
+                            ? `${displayStock} in stock (Size ${selectedSize})`
+                            : `Total: ${displayStock} in stock`
+                          : `${displayStock} in stock`}
                       </span>
                     </div>
                   </div>
@@ -504,38 +656,45 @@ export default function Products() {
 
                     <div className="mt-4 flex items-center justify-between">
                       <div className="relative">
-                        <select
-                          value={selectedSize || ""}
-                          onChange={(e) =>
-                            setSelectedSizes({
-                              ...selectedSizes,
-                              [product.id]: e.target.value,
-                            })
-                          }
-                          className="appearance-none bg-gray-100 border border-gray-300 rounded-md pl-3 pr-5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500"
-                        >
-                          <option value="" disabled>
-                            size
-                          </option>
-                          {product.variants?.map((variant) => (
-                            <option
-                              key={variant.size}
-                              value={variant.size}
-                              disabled={variant.stock <= 0}
-                            >
-                              {variant.size}
-                            </option>
-                          ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-1 right-0 flex items-center px-2 text-gray-700">
-                          <svg
-                            className="fill-current h-4 w-4"
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 20 20"
+                        {usesSizes ? (
+                          <select
+                            value={selectedSize || ""}
+                            onChange={(e) =>
+                              setSelectedSizes({
+                                ...selectedSizes,
+                                [product.id]: e.target.value,
+                              })
+                            }
+                            className="appearance-none bg-gray-100 border border-gray-300 rounded-md pl-3 pr-5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500"
                           >
-                            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                          </svg>
-                        </div>
+                            <option value="" disabled>
+                              size
+                            </option>
+                            {product.variants?.map((variant) => (
+                              <option
+                                key={variant.size}
+                                value={variant.size}
+                                disabled={variant.stock <= 0}
+                              >
+                                {variant.size}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          // For no-size products, don't render anything or render a placeholder
+                          <div className="w-20"></div>
+                        )}
+                        {usesSizes && (
+                          <div className="pointer-events-none absolute inset-y-1 top-1 left-8 flex items-center px-2 text-gray-700">
+                            <svg
+                              className="fill-current h-4 w-4"
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                       <div className="flex space-x-2">
                         <button
@@ -592,6 +751,7 @@ export default function Products() {
         <AddProductForm
           onAdd={handleAddProduct}
           onCancel={() => setShowAddForm(false)}
+          categories={allCategories} // Pass categories to the form
         />
       )}
       {isDeleting && (
