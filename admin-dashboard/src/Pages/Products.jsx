@@ -15,6 +15,7 @@ export default function Products() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [warningMessage, setWarningMessage] = useState("");
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -95,7 +96,6 @@ export default function Products() {
       // Ensure price is number
       const price = formData.get("price");
       if (price) formData.set("price", Number(price));
-
 
       // Send request
       const response = await api.post("/products", formData, {
@@ -242,7 +242,6 @@ export default function Products() {
 
   // Enhanced hasChanges function to handle FormData
   const hasChanges = (newData, original) => {
-
     // If it's FormData, extract values and compare
     if (newData instanceof FormData) {
       const name = newData.get("name");
@@ -449,47 +448,153 @@ export default function Products() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen  bg-gray-50">
       <header
-        className={`sticky top-0 z-20 backdrop-blur-lg bg-white/80 border-b border-gray-200/50 shadow-sm transition-all duration-300 ${
-          isScrolled ? "py-2" : "py-4"
+        className={`sticky lg:-top-8 md:-top-8 xl:-top-8 -top-3 z-20 backdrop-blur-lg rounded-xl bg-white/5 border-b border-gray-200/50 shadow-sm transition-all duration-300 ${
+          isScrolled ? "py-1" : "py-3"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div
-            className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all duration-300 ${
-              isScrolled ? "md:gap-2" : "gap-4"
-            }`}
-          >
+          <div className="flex justify-between gap-2 items-center">
+            {/*Logo Section*/}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex-shrink-0">
+                <div className="h-7 w-7 sm:h-8 sm:w-8 bg-gradient-to-r from-pink-400 to-pink-300 rounded-lg flex items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-white"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <h1
+                  className={`font-bold text-gray-800 transition-all duration-300 ${
+                    isScrolled ? "text-base sm:text-lg" : "text-lg sm:text-xl"
+                  }`}
+                >
+                  Inventory
+                </h1>
+                {!isScrolled && (
+                  <p className="text-gray-500 text-[10px] sm:text-xs flex items-center gap-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3.5 w-3.5"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                    </svg>
+                    <span className="whitespace-nowrap">
+                      {products.reduce((total, product) => {
+                        const usesSizes = getProductUsesSizes(product);
+                        if (usesSizes && product.variants?.length > 0) {
+                          return (
+                            total +
+                            product.variants.reduce(
+                              (sum, v) => sum + Number(v.stock || 0),
+                              0
+                            )
+                          );
+                        } else {
+                          return total + Number(product.stock || 0);
+                        }
+                      }, 0)}{" "}
+                      items in stock
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
+            {/*Search and Filter Controls - Hidden on when scrolled*/}
             <div
-              className={`transition-all duration-300 ${
-                isScrolled ? "scale-95 origin-left" : "scale-100"
+              className={`hidden md:flex items-center gap-4 transition-all duration-300 ${
+                isScrolled ? "opacity-100" : "opacity-90"
               }`}
             >
-              <h1
-                className={`font-bold text-gray-800 transition-all duration-300 ${
-                  isScrolled ? "text-xl" : "text-2xl md:text-3xl"
-                }`}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-4 w-4 text-gray-400"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={filterQuery}
+                  onChange={(e) => setFilterQuery(e.target.value)}
+                  className="block w-40 lg:w-64 pl-10 pr-3 py-2 border border-gray-200 rounded-lg bg-white focus:border-collapse outline-none focus:outline-nonetransition-all text-sm"
+                />
+              </div>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="appearance-none block pl-3 pr-8 lg:pr-9 py-2 border border-gray-200 rounded-lg bg-white outline-none transition-all text-sm [&::-webkit-appearance]:none [&::-moz-appearance]:none"
+                style={{
+                  WebkitAppearance: "none",
+                  MozAppearance: "none",
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E")`,
+                  backgroundPosition: "right 0.5rem center",
+                  backgroundRepeat: "no-repeat",
+                  backgroundSize: "1.5em 1.5em",
+                }}
               >
-                Product Inventory
-              </h1>
-              {!isScrolled && (
-                <p className="text-gray-500 mt-1 text-sm">
-                  {products.length} products available
-                </p>
-              )}
+                <option value="all">All Category</option>
+                {categories.map((category) => (
+                  <option value={category} key={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            {/*Action Buttons*/}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/*Mobile Search Toggle Button*/}
+              <button
+                onClick={() => setShowMobileSearch(!showMobileSearch)}
+                className="md:hidden p-1.5 sm:p-2 text-gray-500 hover:text-gray-700 rounded-lg bg-gray-200 hover:bg-gray-300 transition-colors focus:outline-none focus:ring-0"
+              >
+                <svg
+                  className="h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+              {/*Add Product Button*/}
               <button
                 onClick={() => setShowAddForm(true)}
-                className={`bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 text-white px-4 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 ${
-                  isScrolled ? "py-1.5 text-sm" : "py-2.5"
+                className={`bg-gradient-to-r from-pink-400 to-pink-300 hover:from-pink-500 hover:to-pink-400 px-1.5 text-white rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-1 ${
+                  isScrolled
+                    ? "py-1.5 px-2 sm:px-3 text-xs sm:text-sm"
+                    : "py-2 px-4"
                 }`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
+                  className="h-4 w-4"
                   viewBox="0 0 20 20"
                   fill="currentColor"
                 >
@@ -499,63 +604,53 @@ export default function Products() {
                     clipRule="evenodd"
                   />
                 </svg>
-                {!isScrolled && "Add Product"}
+                <span className="hidden sm:inline">
+                  {isScrolled ? "Add" : "Add Products"}
+                </span>
               </button>
             </div>
           </div>
-
+          {/*Mobile Search and Filter - Appears when toggle*/}
           <div
-            className={`transition-all duration-300 overflow-hidden ${
-              isScrolled ? "max-h-0 py-0" : "max-h-40 py-4"
+            className={`md:hidden transition-all duration-300 overflow-hidden ${
+              showMobileSearch ? "max-h-40 py-3" : "max-h-0 py-0"
             }`}
           >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="col-span-1 md:col-span-2">
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg
-                      className="h-5 w-5 text-gray-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search products..."
-                    value={filterQuery}
-                    onChange={(e) => setFilterQuery(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg bg-white/50 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
-                  />
-                </div>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={filterQuery}
+                  onChange={(e) => setFilterQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      setShowMobileSearch(false);
+                      e.target.blur(); // Remove focus from input
+                    }
+                  }}
+                  className="block w-full pl-4 py-2 border border:gray-200 rounded-lg bg-white focus:border-collapse outline-none focus:outline-none transition-all text-sm "
+                />
               </div>
-
-              <div>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="block w-full px-3 py-2.5 border border-gray-200 rounded-lg bg-white/50 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
-                >
-                  <option value="all">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                name=""
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="block z-0 w-full px-3 py-2 border border-gray-200 rounded-lg bg-white focus:border-collapse outline-none focus:outline-none transition-all tex-sm"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </div>
       </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="lg:max-w-7xl max-w-3xl mx-auto px-3 sm:px-6 lg:px-8 py-8">
         {filteredProducts.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm p-8 text-center">
             <svg
@@ -589,7 +684,7 @@ export default function Products() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => {
               const usesSizes = getProductUsesSizes(product);
               const selectedSize = selectedSizes[product.id];
@@ -609,16 +704,16 @@ export default function Products() {
                   key={product.id}
                   className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-300 border border-gray-100"
                 >
-                  <div className="relative pb-2/3 h-48 bg-gray-100">
+                  <div className="relative h-32 sm:h-40 lg:h-48 bg-gray-100">
                     <img
                       src={product.image || "https://via.placeholder.com/300"}
                       alt={product.name}
-                      className="absolute h-full w-full object-contain p-4"
+                      className="absolute h-full w-full object-contain p-4 mt-2"
                       onError={(e) => {
                         e.target.src = "https://via.placeholder.com/300";
                       }}
                     />
-                    <div className="absolute top-2 right-2">
+                    <div className="absolute top-1 right-1 sm:top-2 sm:right-2">
                       <span
                         className={`px-2 py-1 text-xs font-semibold rounded-full ${
                           displayStock > 0
@@ -628,34 +723,34 @@ export default function Products() {
                       >
                         {usesSizes
                           ? selectedSize
-                            ? `${displayStock} in stock (Size ${selectedSize})`
+                            ? `${displayStock} in stock`
                             : `Total: ${displayStock} in stock`
                           : `${displayStock} in stock`}
                       </span>
                     </div>
                   </div>
-
-                  <div className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold text-gray-800 line-clamp-1">
+                  {/* Content Container - Compact padding on mobile */}
+                  <div className="p-2 sm:p-3 lg:p-4">
+                    <div className="flex justify-between items-start gap-1 mb-1.5 sm:mb-2">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-800 text-sm line-clamp-1">
                           {product.name}
                         </h3>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-[10px] sm:text-xs text-gray-500">
                           {product.category_name}
                         </span>
                       </div>
-                      <span className="text-lg font-bold text-pink-600">
+                      <span className="font-bold text-sm sm:text-base  lg:text-lg text-pink-600 flex-shrink-0">
                         ${product.price}
                       </span>
                     </div>
 
-                    <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                    <p className="hidden sm:block text-xs overflow-hidden text-ellipsis whitespace-nowrap lg:text-sm text-gray-500 line-clamp-1 mb-2 lg:mb-3">
                       {product.description}
                     </p>
 
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="relative">
+                    <div className="flex items-center justify-between mt-3 gap-1 sm:gap-2">
+                      <div className="relative flex-1 min-w-0">
                         {usesSizes ? (
                           <select
                             value={selectedSize || ""}
@@ -665,16 +760,17 @@ export default function Products() {
                                 [product.id]: e.target.value,
                               })
                             }
-                            className="appearance-none bg-gray-100 border border-gray-300 rounded-md pl-3 pr-5 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500"
+                            className="appearance-none bg-gray-100  rounded-md pl-1 pr-6 sm:pl-3 sm:pr-7 py-1.5 text-xs sm:text-sm focus:outline-none text-center w-full"
                           >
-                            <option value="" disabled>
-                              size
+                            <option value="" disabled className="text-center">
+                              Size
                             </option>
                             {product.variants?.map((variant) => (
                               <option
                                 key={variant.size}
                                 value={variant.size}
                                 disabled={variant.stock <= 0}
+                                className="text-center"
                               >
                                 {variant.size}
                               </option>
@@ -682,10 +778,10 @@ export default function Products() {
                           </select>
                         ) : (
                           // For no-size products, don't render anything or render a placeholder
-                          <div className="w-20"></div>
+                          <div className="w-12 sm:w-16"></div>
                         )}
                         {usesSizes && (
-                          <div className="pointer-events-none absolute inset-y-1 top-1 left-8 flex items-center px-2 text-gray-700">
+                          <div className="pointer-events-none absolute inset-y-0 right-1 flex items-center px-1 text-gray-700">
                             <svg
                               className="fill-current h-4 w-4"
                               xmlns="http://www.w3.org/2000/svg"
@@ -696,7 +792,7 @@ export default function Products() {
                           </div>
                         )}
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-1 sm:space-x-2 flex-shrink-0">
                         <button
                           onClick={() => handleEdit(product)}
                           className="text-pink-500 hover:text-pink-600 transition-colors p-1.5 rounded-full hover:bg-pink-100 bg-pink-50"

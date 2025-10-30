@@ -60,7 +60,7 @@ export default function Layout() {
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto p-8">
+        <div className="flex-1 overflow-auto p-3 md:p-8 lg:p-8">
           <Outlet />
         </div>
       </div>
