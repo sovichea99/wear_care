@@ -21,19 +21,24 @@ export default function Login() {
 
       if (!admin) {
         setError("Invalid login response from server");
+        setLoading(false);
         return;
       }
 
-      // Store admin info - token is automatically in HttpOnly cookie
+      // Store admin info
       sessionStorage.setItem("admin", JSON.stringify(admin));
 
-      // Navigate to dashboard
-      navigate("/");
+      // Add a small delay before navigation to prevent cancelation
+      setTimeout(() => {
+        navigate("/");
+      }, 100);
+      
     } catch (error) {
+      console.error("Login error:", error); // Keep this for debugging
       setError(error.message || "Login failed. Please check your credentials.");
-    } finally {
       setLoading(false);
     }
+    // Remove setLoading from finally - we handle it in catch and success
   };
 
   return (
