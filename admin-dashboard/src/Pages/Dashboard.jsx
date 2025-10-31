@@ -29,7 +29,6 @@ export default function Dashboard() {
         api.get("/dashboard/stats"),
         api.get("/dashboard/recent-orders"),
       ]);
-      console.log("Stats Response:", statsRes.data);
 
       setStats({
         totalOrders: statsRes.data.totalOrders,
@@ -49,7 +48,7 @@ export default function Dashboard() {
       }));
     }
   };
-
+  
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -109,39 +108,39 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Link to="/orders">
-        <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
-          <div className="flex items-center">
-            <ShoppingBagIcon className="h-8 w-8 text-blue-500 mr-3" />
-            <div>
-              <p className="text-gray-500">Total Orders</p>
-              <p className="text-2xl font-bold">
-                <CountUp
-                  end={stats.totalOrders.toLocaleString()}
-                  duration={1.5}
-                  separator=","
-                />
-              </p>
+          <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-center">
+              <ShoppingBagIcon className="h-8 w-8 text-blue-500 mr-3" />
+              <div>
+                <p className="text-gray-500">Total Orders</p>
+                <p className="text-2xl font-bold">
+                  <CountUp
+                    end={stats.totalOrders.toLocaleString()}
+                    duration={1.5}
+                    separator=","
+                  />
+                </p>
+              </div>
             </div>
           </div>
-        </div>
         </Link>
 
         <Link to="/products" className="block">
-        <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
-          <div className="flex items-center">
-            <ChartBarIcon className="h-8 w-8 text-pink-500 mr-3" />
-            <div>
-              <p className="text-gray-500">Total Products</p>
-              <p className="text-2xl font-bold">
-                <CountUp
-                  end={stats.totalProducts.toLocaleString()}
-                  duration={1.5}
-                  separator=","
-                />
-              </p>
+          <div className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-center">
+              <ChartBarIcon className="h-8 w-8 text-pink-500 mr-3" />
+              <div>
+                <p className="text-gray-500">Total Products</p>
+                <p className="text-2xl font-bold">
+                  <CountUp
+                    end={stats.totalProducts.toLocaleString()}
+                    duration={1.5}
+                    separator=","
+                  />
+                </p>
+              </div>
             </div>
           </div>
-        </div>
         </Link>
 
         <Link to="/customers" className="block">

@@ -1,42 +1,85 @@
-// Import the api instance to make HTTP requests
+// services/auth.js
 import api from './api';
 
-// Login function: makes a POST request to the /login endpoint with the provided credentials
+// Admin Login function
 export const adminLogin = async (credentials) => {
-  // Send a POST request with the user's login credentials
-  const response = await api.post('/admin/login', credentials);
-  // Return the data from the response (usually includes authentication token or user info)
-  return response.data;
-};
-// Get the current authenticated user: retrieves the stored 'authToken' from localStorage
-// services/auth.js (or wherever getCurrentUser is defined)
-export const getCurrentAdmin = () => {
-    try {
-        const adminJson = sessionStorage.getItem('admin');
-        if (!adminJson) {
-            return null; // Or return an empty object: {}
-        }
-        return JSON.parse(adminJson);
-    } catch (error) {
-        console.error("Error retrieving admin from sessionStorage:", error);
-        return null;
+  try {
+    const response = await api.post('/admin/login', credentials);
+    
+    // Store only admin info in sessionStorage
+    if (response.data.admin) {
+      sessionStorage.setItem('admin', JSON.stringify(response.data.admin));
     }
+    
+    return response.data;
+  } catch (error) {
+    // More specific error messages
+    if (error.response?.status === 401) {
+      throw new Error('Invalid email or password');
+    } else if (error.response?.status === 422) {
+      throw new Error('Validation error. Please check your input.');
+    } else if (error.code === 'NETWORK_ERROR' || error.message.includes('Network Error')) {
+      throw new Error('Network error. Please check your connection.');
+    } else {
+      throw new Error('Login failed. Please try again.');
+    }
+  }
 };
 
-// Logout function: removes the 'authToken' from localStorage to log out the user
+// Get the current authenticated admin
+export const getCurrentAdmin = () => {
+  try {
+    const adminJson = sessionStorage.getItem('admin');
+    if (!adminJson) {
+      return null;
+    }
+    return JSON.parse(adminJson);
+  } catch (error) {
+    console.log(error)
+    return null;
+  }
+};
+
+// Verify if admin is authenticated by checking with backend
+export const verifyAdminAuthentication = async () => {
+  try {
+    const response = await api.get('/admin/me');
+    
+    // Update sessionStorage with fresh admin data
+    if (response.data.admin) {
+      sessionStorage.setItem('admin', JSON.stringify(response.data.admin));
+    }
+    return response.data.admin;
+  } catch (error) {
+    // Clear invalid admin data
+    console.log(error)
+    sessionStorage.removeItem('admin');
+    return null;
+  }
+};
+
+// Admin Logout function
 export const adminLogout = async () => {
   try {
     await api.post('/admin/logout');
   } catch (err) {
-    console.error('Logout failed:', err);
+    // Silent fail - still clear local storage
+    console.log(err)
+  } finally {
+    // Clear frontend storage
+    sessionStorage.removeItem('admin');
+    // Force redirect to login
+    window.location.href = "/login";
   }
-  sessionStorage.removeItem('authToken'); // Clear token
-  sessionStorage.removeItem('admin'); // Clear admin data
-  window.location.href = "/login"; // Force redirect
 };
 
-
-export const isAdmin = ()=> {
+// Check if admin is logged in
+export const isAdmin = () => {
   const admin = getCurrentAdmin();
   return admin && admin.role === 'admin';
-}
+};
+
+// Check if admin is authenticated (frontend basic check)
+export const isAdminLoggedIn = () => {
+  return !!getCurrentAdmin();
+};

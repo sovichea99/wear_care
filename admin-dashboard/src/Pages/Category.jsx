@@ -41,7 +41,7 @@ export default function Category() {
     try {
       console.log("Updating category with:", updatedCategory);
 
-      const token = localStorage.getItem("authtoken");
+      const token = sessionStorage.getItem("authtoken");
       const response = await api.post(
         `/categories/${updatedCategory._id}`,
         { 
@@ -103,7 +103,7 @@ export default function Category() {
   };
 
   const handleAddCategory = async (newCategory) => {
-    const token = localStorage.getItem("authtoken");
+    const token = sessionStorage.getItem("authtoken");
     try {
       setIsLoading(true);
       const response = await api.post("/categories", newCategory, {

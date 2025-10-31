@@ -91,7 +91,7 @@ export default function Products() {
         return;
       }
 
-      const token = localStorage.getItem("authtoken");
+     const token = sessionStorage.getItem("authToken");
 
       // Ensure price is number
       const price = formData.get("price");

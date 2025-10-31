@@ -1,11 +1,15 @@
-import { Navigate, Outlet } from "react-router-dom";
-import { getCurrentAdmin } from "../services/auth";
+// components/ProtectedRoute.jsx
+import { Navigate, Outlet } from 'react-router-dom';
+import { isAdminLoggedIn } from '../services/auth';
 
-const ProtectedRoute = () => {
-  const isAuthenticated = sessionStorage.getItem("authToken"); // Check for auth token
-  const admin = getCurrentAdmin();
+export default function ProtectedRoute() {
+  const isAuthenticated = isAdminLoggedIn();
+  
 
-  return isAuthenticated && admin ? <Outlet /> : <Navigate to="/login" replace />;
-};
-
-export default ProtectedRoute;
+  
+  if (!isAuthenticated) {
+    console.log('🚫 ProtectedRoute - Redirecting to login');
+    return <Navigate to="/login" replace />;
+  }
+  return <Outlet />;
+}
